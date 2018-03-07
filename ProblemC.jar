@@ -1,0 +1,201 @@
+import java.awt.Point;
+import java.util.*;
+
+class C {
+	
+	 final int UNKNOWN = -1;
+	 final int [] DOWN_UP = {1,-1,0,0};
+	 final char BLOCKED = '#';
+	 final char CLEARED = '.';
+	 final int MOVEMENTS = 4;
+	 final int [] RIGHT_LEFT = {0,0,1,-1};
+	 final String [] HOUSES = {"A","B","C","D"};
+	 ArrayList<String> notVisitedHouses;
+	 int n, m, shortestPath;
+	 String start;
+	static String[] path = new String[25];
+	
+	public C(Scanner sc, int n , int m){
+		notVisitedHouses = new ArrayList<String>(Arrays.asList(HOUSES));
+		setSize(n, m);
+		String[] map = fillMap(sc);
+		this.shortestPath = search(map, getStart(map));			
+	}
+	
+	private void setSize(int n, int m){
+		this.n = n;
+		this.m = m;			
+	}
+	
+	private String[] fillMap(Scanner in){
+		String[] map = new String[n];
+		for(int i = 0;i<n;i++){
+			String temp = in.next();
+			if(temp.length() == m)
+				map[i] = temp;
+			path[i] = map[i];
+		}
+		return map;
+	}
+	
+	private Point getStart(String[] map) throws InputMismatchException{
+		for(int i = 0; i<map.length; i++){
+			for(int j = 0; j < HOUSES.length; j++)
+				if(map[i].contains(HOUSES[j])){
+					start = HOUSES[j];
+					notVisitedHouses.remove(start);
+					return new Point(i,map[i].indexOf(HOUSES[j]));
+				}
+		}
+		throw new InputMismatchException("");
+	}
+	
+	private int[][] fillAdjacencyMatrix(){
+		int[][] adMatrix = new int[this.n][this.m];
+        for(int [] v : adMatrix)
+            Arrays.fill(v,UNKNOWN);
+        return adMatrix;
+	}
+	
+	public String getShortestPath(){
+		return Integer.toString((shortestPath/2));
+	}
+	
+	
+	private int search(String [] map, Point startPoint){
+        LinkedList<Point> points = new LinkedList<Point>();
+        points.add(startPoint);
+        
+        int[][] adMatrix = fillAdjacencyMatrix();
+        
+        adMatrix[startPoint.x][startPoint.y] = 0;
+        
+        String[][] test = new String[this.n][this.m];
+        
+        while(!points.isEmpty()){
+            Point firstPoint = points.pop();
+            
+            for(int i = 0; i < MOVEMENTS; i++){
+            	int directionX = firstPoint.x + RIGHT_LEFT[i];
+                int directionY = firstPoint.y + DOWN_UP[i];
+                
+                if(directionX >= 0 && directionY >= 0 && directionX < n && directionY < m){
+                    
+                    int locationDist = adMatrix[directionX][directionY];
+                    
+                    
+                    char locationValue = map[directionX].charAt(directionY);
+                    
+                	if(locationDist == UNKNOWN && locationValue != BLOCKED){
+                		int pointValue = adMatrix[firstPoint.x][firstPoint.y];
+               		    
+                		if(locationValue == CLEARED)
+                			adMatrix[directionX][directionY] = pointValue;
+                		else{
+        					adMatrix[directionX][directionY] = pointValue + 1;                					
+        				}
+                		
+                		for(int k = 0 ; k<HOUSES.length;k++){
+                			if(!HOUSES[k].equals(start)){
+                				if(locationValue == HOUSES[k].charAt(0)){
+                					adMatrix[directionX][directionY] = pointValue;                		                 					
+                				}                				                				
+                			}else if(HOUSES[k].equals(start) && locationValue != CLEARED)
+                				adMatrix[directionX][directionY] = pointValue + 1;
+                		}
+                		test[directionX][directionY] = locationValue +""+adMatrix[directionX][directionY];
+                		
+                		points.add(new Point(directionX,directionY));
+                		
+                		
+                		if(locationValue == 'A' || locationValue == 'B' || locationValue == 'C' || locationValue == 'D'){
+                			String s = ""+locationValue;
+                			notVisitedHouses.remove(s);
+                			shortestPath += adMatrix[directionX][directionY];
+                		}                		
+                	}
+                }
+            }
+        }
+        
+        for(int i=0;i<n;++i) {
+            for(int j=0;j<m;++j) {
+                //System.out.print(adMatrix[i][j]+" ");
+                char loc = path[i].charAt(j);
+                if(loc == 'A' || loc == 'B' || loc == 'C' || loc == 'D') {
+                    int x = i, y = j;
+                    //System.err.println("F : "+loc+" "+adMatrix[x][y]);
+                    char replace = '.';
+                    boolean flag = false;
+                    while(adMatrix[x][y] != 0) {
+                        int num = adMatrix[x][y]-1; // target position
+                        if(num == 0) break;
+                        if(x > 0 && adMatrix[x-1][y] == num) {
+                            char[] chars = path[x-1].toCharArray();
+                            chars[y] = replace;
+                            path[x-1] = String.valueOf(chars);
+                            x--;
+                            continue;
+                        }
+                        else if(adMatrix[x+1][y] == num) {
+                            char[] chars = path[x+1].toCharArray();
+                            chars[y] = replace;
+                            path[x+1] = String.valueOf(chars);
+                            x++;
+                            continue;
+                        }
+                        else if(y < m && adMatrix[x][y+1] == num) {
+                            char[] chars = path[x].toCharArray();
+                            chars[y+1] = replace;
+                            path[x] = String.valueOf(chars);
+                            y++;
+                            continue;
+                        }
+                        else if(y > 0 && adMatrix[x][y-1] == num) {
+                            char[] chars = path[x].toCharArray();
+                            chars[y-1] = replace;
+                            path[x] = String.valueOf(chars);
+                            y--;
+                            continue;
+                        }
+                        if(!flag) {
+                            adMatrix[x][y] ++;
+                            flag = true;
+                        }
+                        else 
+                         break;
+                        
+                    }
+                }
+            }
+            //System.out.println();
+        }
+        if(notVisitedHouses.size() == 0)
+        	return shortestPath;
+        else 
+        	throw new InputMismatchException("");
+    }
+	
+	public static void main(String[] args){		
+		Scanner sc = new Scanner(System.in);			
+		try{
+			while (sc.hasNext()){
+				int n = sc.nextInt();
+				int m = sc.nextInt();
+				if(n == 0 || m == 0)
+					break;
+				else{
+					new C(sc,n,m).getShortestPath();
+					System.out.println(n+" "+m);
+					for(int i=0;i<n;++i) {
+					    System.out.println(path[i]);
+					}
+					System.out.println();
+				}
+			}		
+		}catch (Exception E){
+			System.out.println();
+		}
+		
+	}
+}
